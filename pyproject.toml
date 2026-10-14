@@ -1,0 +1,58 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gitverse-cli"
+version = "0.1.0"
+description = "gv: GitVerse CI runs, job logs, workflow dispatch and packages from the terminal (public REST API)"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.1",
+    "keyring>=25.6",
+]
+
+[project.scripts]
+gv = "gitverse_cli.cli:main"
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.39.9",
+    "pytest>=9.0.3",
+    "ruff>=0.8.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gitverse_cli"]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+include = ["src", "tests"]
+# Tests import their fakes from conftest.py, as pytest puts tests/ on sys.path.
+extraPaths = ["tests"]
+typeCheckingMode = "standard"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F", "I", "N", "UP", "B", "C4", "DTZ", "T10", "PIE", "RET", "SIM",
+    "ANN", "PGH", "BLE", "TID", "ICN", "ARG", "ERA", "RUF", "PLC0415",
+]
+ignore = ["E501", "RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.flake8-import-conventions]
+banned-from = ["datetime"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
