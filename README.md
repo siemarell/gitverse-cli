@@ -1,7 +1,8 @@
 # gv — GitVerse from the command line
 
 `gv` is a small, `gh`-style CLI for the public REST API of [GitVerse](https://gitverse.ru):
-CI/CD runs and job logs, manual workflow runs, registry packages, and raw API calls.
+CI/CD runs and job logs, manual workflow runs, registry packages, repositories, and raw API
+calls.
 
 It exists because GitVerse has no official CLI, and reading CI logs through the web UI
 (or copying them into a chat with a coding agent) gets old fast. The token lives in your
@@ -39,7 +40,7 @@ gv auth logout
 - The token is never printed, never put in error messages, and only ever sent to
   `https://api.gitverse.ru`.
 
-Token permissions: tick «Repositories» for runs, logs and workflows. For packages:
+Token permissions: tick «Repositories» for runs, logs, workflows and repositories. For packages:
 «Read», plus «Delete» if you want to clean the registry.
 
 ## Usage
@@ -67,6 +68,11 @@ gv package versions container myproject/backend
 gv package delete container myproject/backend --version 7      # asks first; -y to skip
 gv package versions npm my-lib --owner someone --user          # a user's package
 
+# Repositories
+gv repo create acme/shop -d "The shop"   # in organization acme, private; --public for public
+gv repo create shop                      # your own
+gv repo view acme/shop                   # or no argument inside a clone
+
 # Anything else, like `gh api` ({owner} and {repo} are filled in)
 gv api repos/{owner}/{repo}/actions/runs -f status=failure
 gv api repos/{owner}/{repo}/actions/runs/123/cancel -X POST
@@ -84,7 +90,7 @@ Exit codes: `0` ok, `1` failure (API error, failed run under `watch`), `2` usage
 [`skills/gitverse/SKILL.md`](skills/gitverse/SKILL.md) is a ready-made skill for Claude
 Code (copy it to `.claude/skills/gitverse/` of your project or to `~/.claude/skills/`). It
 tells the agent to read runs and logs freely, to leave logging in to you, and to ask before
-anything that writes (dispatch, rerun, cancel, delete).
+anything that writes (dispatch, rerun, cancel, delete, repository create).
 
 ## Development
 

@@ -1,6 +1,6 @@
 ---
 name: gitverse
-description: GitVerse CI/CD and package registry through the `gv` CLI — list pipeline runs, read job logs (why CI or a deploy failed), watch a run, start a workflow manually, rerun or cancel a run, list and delete package versions, raw API calls. Use whenever a task needs GitVerse CI state or logs instead of asking the user to copy them.
+description: GitVerse CI/CD and package registry through the `gv` CLI — list pipeline runs, read job logs (why CI or a deploy failed), watch a run, start a workflow manually, rerun or cancel a run, list and delete package versions, create and view repositories, raw API calls. Use whenever a task needs GitVerse CI state or logs instead of asking the user to copy them.
 ---
 
 # GitVerse via `gv`
@@ -26,6 +26,7 @@ gv run view 12 --log --job 501            # one job's whole log
 gv run watch 12                           # waits; exit 0 only on success (or skipped)
 gv workflow list
 gv package versions container <name>      # versions with their ids
+gv repo view <owner>/<repo>               # visibility, default branch, clone URLs
 gv api repos/{owner}/{repo}/actions/runs  # anything else, like `gh api`
 ```
 
@@ -42,6 +43,7 @@ gv workflow run <file.yml> --ref <branch> -f key=value
 gv run rerun 12            # or --job <id>
 gv run cancel 12
 gv package delete container <name> --version <id> --yes   # irreversible
+gv repo create <org>/<name> -d "…"         # private unless --public; prints the remote to push to
 ```
 
 A dispatch prints no run number: follow it with `gv run list -w <file.yml> -L 1`, then

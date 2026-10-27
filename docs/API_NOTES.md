@@ -41,6 +41,19 @@ Source: <https://gitverse.ru/docs/developers/public-api/actions> and the spec.
 - `POST …/actions/workflows/{workflow}/dispatches`, query `branch` or `tag`, body: a flat
   map of input name → string value; answers 204.
 
+## Repositories
+
+Source: the spec (`v1/openapi-1.12.json`, read 2026-10-27).
+
+- `POST /orgs/{org}/repos` (body `request.CreateOrgRepoOption`: `name`, `private`,
+  `visibility` — "public"/"private", has priority over `private`, `description`,
+  `default_branch`, `auto_init`, …) and `POST /user/repos` (`request.CreateRepo`: `name`,
+  `private`, `description`, `auto_init`, …) → 201 `response.Repository`.
+- `GET /repos/{owner}/{repo}` → `response.Repository` (`full_name`, `private`,
+  `html_url`, `clone_url`, `ssh_url`, `default_branch`, `pushed_at`, …).
+- `POST /repos/migrate` (`source_url`, `source_token`, `owner`, `name`, `private`, …) → 202:
+  GitVerse pulls a remote repository itself. `gv` does not wrap it.
+
 ## Packages
 
 Source: <https://gitverse.ru/docs/developers/public-api/packages>
@@ -67,3 +80,4 @@ Source: <https://gitverse.ru/docs/collaborative/authentification/tokens>
 - The dispatch body.
 - Encoding of `/` in package names (`myproject%2Fweb`).
 - The maximum `per_page`.
+- Repository creation and `ssh_url`'s form.

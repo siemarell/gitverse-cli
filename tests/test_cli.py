@@ -222,3 +222,49 @@ def test_without_a_token_commands_exit_4(cli: Cli) -> None:
 def test_watch_rejects_a_zero_interval(cli: Cli) -> None:
     with pytest.raises(SystemExit):
         cli("run", "watch", "12", "-R", "acme/shop", "--interval", "0")
+
+
+CREATED = {
+    "full_name": "acme/shop",
+    "private": True,
+    "html_url": "https://gitverse.ru/acme/shop",
+    "clone_url": "https://gitverse.ru/acme/shop.git",
+    "ssh_url": "ssh://git@ssh.gitverse.ru:2222/acme/shop.git",
+    "default_branch": "master",
+    "pushed_at": None,
+}
+
+
+def test_repo_create_in_an_organization_is_private_by_default(cli: Cli) -> None:
+    cli.api.add("POST", "/orgs/acme/repos", CREATED, status=201)
+    result = cli("repo", "create", "acme/shop", "-d", "The shop")
+    assert result.code == 0
+    assert json.loads(cli.api.requests[0].content) == {"name": "shop", "private": True, "description": "The shop"}
+    assert result.stdout.splitlines() == [
+        "created acme/shop (private)  https://gitverse.ru/acme/shop",
+        "push: git remote add origin ssh://git@ssh.gitverse.ru:2222/acme/shop.git",
+    ]
+
+
+def test_repo_create_without_an_owner_is_the_users_own_and_public_on_request(cli: Cli) -> None:
+    cli.api.add("POST", "/user/repos", {**CREATED, "private": False}, status=201)
+    result = cli("repo", "create", "shop", "--public")
+    assert result.code == 0
+    assert json.loads(cli.api.requests[0].content) == {"name": "shop", "private": False}
+
+
+@pytest.mark.parametrize("name", ["/shop", "acme/", "a/b/c"])
+def test_repo_create_refuses_a_malformed_name(cli: Cli, name: str) -> None:
+    result = cli("repo", "create", name)
+    assert result.code == 2
+    assert not cli.api.requests
+
+
+def test_repo_view(cli: Cli) -> None:
+    cli.api.add("GET", REPOSITORY, CREATED)
+    result = cli("repo", "view", "acme/shop")
+    assert result.stdout.splitlines() == [
+        "acme/shop (private)  https://gitverse.ru/acme/shop",
+        "  default branch master  pushed None",
+        "  https://gitverse.ru/acme/shop.git  ssh://git@ssh.gitverse.ru:2222/acme/shop.git",
+    ]

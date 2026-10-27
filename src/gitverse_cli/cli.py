@@ -124,6 +124,18 @@ def _build_parser() -> argparse.ArgumentParser:
     auth.add_parser("status", help="who the stored token belongs to").set_defaults(handler=_auth_status)
     auth.add_parser("logout", help="remove the stored token").set_defaults(handler=_auth_logout)
 
+    repositories = commands.add_parser("repo", help="repositories").add_subparsers(required=True, metavar="ACTION")
+    repo_create = repositories.add_parser("create", parents=[json_option], help="create an empty repository")
+    repo_create.add_argument("name", metavar="[ORG/]NAME", help="ORG/NAME — in that organization; NAME — your own")
+    repo_create.add_argument("--public", action="store_true", help="visible to everyone (default: private)")
+    repo_create.add_argument("-d", "--description")
+    repo_create.set_defaults(handler=_repo_create)
+    repo_view = repositories.add_parser("view", parents=[json_option], help="a repository's details")
+    repo_view.add_argument(
+        "repository", nargs="?", metavar="OWNER/REPO", help="default: the gitverse.ru remote of this directory"
+    )
+    repo_view.set_defaults(handler=_repo_view)
+
     runs = commands.add_parser("run", help="workflow runs").add_subparsers(required=True, metavar="ACTION")
     run_list = runs.add_parser("list", parents=[repository_option, json_option], help="recent runs")
     run_list.add_argument("-w", "--workflow", help="only this workflow's runs (file name, e.g. ci.yml)")
@@ -234,6 +246,35 @@ def _auth_logout(_arguments: argparse.Namespace, context: Context) -> int:
     context.out(f"token removed from {', '.join(removed)}" if removed else "no stored token")
     if context.token_store.load_from_environment() is not None:
         context.out(f"note: {ENVIRONMENT_VARIABLE} is still set")
+    return 0
+
+
+def _repo_create(arguments: argparse.Namespace, context: Context) -> int:
+    owner, separator, name = str(arguments.name).rpartition("/")
+    if not name or (separator and (not owner or "/" in owner)):
+        raise UsageError(f"expected NAME or ORG/NAME, got {arguments.name!r}")
+    # `gv api -f` sends strings only, and the API wants `private` a JSON boolean.
+    body: dict[str, object] = {"name": name, "private": not arguments.public}
+    if arguments.description:
+        body["description"] = arguments.description
+    path = f"/orgs/{path_segment(owner)}/repos" if owner else "/user/repos"
+    repository = context.client().request("POST", path, body=body).json()
+    if arguments.json:
+        context.json(repository)
+        return 0
+    context.out(f"created {_repository_summary(repository)}")
+    context.out(f"push: git remote add origin {repository.get('ssh_url') or repository.get('clone_url')}")
+    return 0
+
+
+def _repo_view(arguments: argparse.Namespace, context: Context) -> int:
+    repository = context.client().get_json(_repository_path(resolve_repository(arguments.repository)))
+    if arguments.json:
+        context.json(repository)
+        return 0
+    context.out(_repository_summary(repository))
+    context.out(f"  default branch {repository.get('default_branch')}  pushed {repository.get('pushed_at')}")
+    context.out(f"  {repository.get('clone_url')}  {repository.get('ssh_url')}")
     return 0
 
 
@@ -410,6 +451,11 @@ def _api(arguments: argparse.Namespace, context: Context) -> int:
 
 def _repository_path(repository: Repository) -> str:
     return f"/repos/{path_segment(repository.owner)}/{path_segment(repository.name)}"
+
+
+def _repository_summary(repository: dict[str, Any]) -> str:
+    visibility = "private" if repository.get("private") else "public"
+    return f"{repository.get('full_name')} ({visibility})  {repository.get('html_url')}"
 
 
 def _package_owner(arguments: argparse.Namespace) -> str:
